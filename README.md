@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Expense Tracker
+
+A personal expense tracking web app built with **Next.js 16 (App Router)**, **Prisma**, and **SQLite**.
+
+## Features
+
+- Add expenses with amount, category, optional description, and date
+- Filter expenses by category
+- Expenses are always sorted newest-first
+- Total reflects only currently visible (filtered) expenses
+- Duplicate-submission protection via idempotency keys
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+
+### Install & Run
 
 ```bash
+npm install
+npx prisma migrate deploy   # apply DB migrations (creates prisma/dev.db)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Persistence
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Expenses are persisted in a **SQLite database** (`prisma/dev.db`) managed by Prisma ORM.
 
-## Learn More
+The schema is defined in `prisma/schema.prisma`. Migrations live in `prisma/migrations/`.
 
-To learn more about Next.js, take a look at the following resources:
+## API
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### `GET /api/expenses`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Returns all expenses sorted by date descending.
 
-## Deploy on Vercel
+**Query params:**
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Param      | Type   | Description                        |
+|------------|--------|------------------------------------|
+| `category` | string | Filter by exact category name      |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Response:** `200 OK` — array of expense objects.
+
+---
+
+### `POST /api/expenses`
+
+Creates a new expense.
+
+**Headers:**
+
+| Header            | Required | Description                                     |
+|-------------------|----------|-------------------------------------------------|
+| `Content-Type`    | Yes      | `application/json`                              |
+| `Idempotency-Key` | No       | A unique string per submission attempt (UUID recommended). Identical keys return the original expense without creating a duplicate. |
+
+**Body (JSON):**
+
+| Field         | Type   | Required | Description                       |
+|---------------|--------|----------|-----------------------------------|
+| `amount`      | number | Yes      | Must be a positive number         |
+| `category`    | string | Yes      | Must be a non-empty string        |
+| `date`        | string | Yes      | ISO date string (e.g. YYYY-MM-DD) |
+| `description` | string | No       | Optional free-text note           |
+
+**Responses:**
+
+| Status | Meaning                                     |
+|--------|---------------------------------------------|
+| 201    | Expense created                             |
+| 200    | Idempotent — returned existing expense      |
+| 400    | Validation error (see `error` field)        |
+| 500    | Unexpected server error                     |
+
+## Idempotency Strategy
+
+The frontend generates a `crypto.randomUUID()` per submission and sends it as the `Idempotency-Key` header.
+
+The backend stores the key in a `idempotencyKey` column (unique index) on the `Expense` table. If a request arrives with a key that already exists, the existing record is returned immediately — **no duplicate is ever written**.
+
+This protects against:
+- Double form submissions (fast double-click)
+- Network retries after timeout
+- Page refresh mid-request
+
+## Assumptions
+
+- Single-user app; no authentication required.
+- Categories are a fixed list: Food, Travel, Rent, Shopping, Bills.
+- `description` is optional; all other fields are required.
+- SQLite is sufficient for local/single-server deployments.
