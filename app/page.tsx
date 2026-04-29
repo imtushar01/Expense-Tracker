@@ -11,13 +11,18 @@ export default function Home() {
   });
 
   const [expenses, setExpenses] = useState([]);
+  const [filter, setFilter] = useState("");
 
+  // Load expenses (with optional category filter)
   async function loadExpenses() {
-    const res = await fetch("/api/expenses");
+    const res = await fetch(
+      `/api/expenses${filter ? `?category=${filter}` : ""}`
+    );
     const data = await res.json();
     setExpenses(data);
   }
 
+  // Add expense
   async function addExpense(e: any) {
     e.preventDefault();
 
@@ -37,13 +42,35 @@ export default function Home() {
     loadExpenses();
   }
 
+  // Reload when filter changes
   useEffect(() => {
     loadExpenses();
-  }, []);
+  }, [filter]);
+
+  // Total calculation
+  const total = expenses.reduce(
+    (sum: number, e: any) => sum + Number(e.amount),
+    0
+  );
 
   return (
     <main style={{ padding: 20 }}>
       <h1>Expense Tracker</h1>
+
+      {/* TOTAL */}
+      <h2>Total: ₹{total}</h2>
+
+      {/* FILTER */}
+      <select
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        style={{ marginBottom: 10 }}
+      >
+        <option value="">All</option>
+        <option value="food">Food</option>
+        <option value="travel">Travel</option>
+        <option value="rent">Rent</option>
+      </select>
 
       {/* FORM */}
       <form onSubmit={addExpense} style={{ marginBottom: 20 }}>
