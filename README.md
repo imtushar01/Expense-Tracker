@@ -4,7 +4,7 @@ A personal expense tracking web app built with **Next.js 16 (App Router)**, **Pr
 
 ## Live Demo
 
-Deployed on Vercel — [expense-tracker-imtushar01.vercel.app](ttps://expense-tracker-red-nine-80.vercel.app/)
+Deployed on Vercel — [https://expense-tracker-red-nine-80.vercel.app/](https://expense-tracker-red-nine-80.vercel.app/)
 
 ---
 
