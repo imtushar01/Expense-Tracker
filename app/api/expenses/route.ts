@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const category = searchParams.get("category");
+
   const expenses = await prisma.expense.findMany({
+    where: category ? { category } : {},
     orderBy: { date: "desc" },
   });
 

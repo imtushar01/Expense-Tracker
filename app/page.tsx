@@ -12,19 +12,33 @@ export default function Home() {
 
   const [expenses, setExpenses] = useState([]);
   const [filter, setFilter] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Load expenses (with optional category filter)
+  // Load expenses
   async function loadExpenses() {
-    const res = await fetch(
-      `/api/expenses${filter ? `?category=${filter}` : ""}`
-    );
+    setLoading(true);
+
+    const url =
+      filter === ""
+        ? "/api/expenses"
+        : `/api/expenses?category=${filter}`;
+
+    const res = await fetch(url);
     const data = await res.json();
+
     setExpenses(data);
+    setLoading(false);
   }
 
   // Add expense
   async function addExpense(e: any) {
     e.preventDefault();
+
+    // validation
+    if (!form.amount || Number(form.amount) <= 0  || !form.category || !form.date) {
+      alert("Please enter valid expense details");
+      return;
+    }
 
     await fetch("/api/expenses", {
       method: "POST",
@@ -51,10 +65,12 @@ export default function Home() {
   const total = expenses.reduce(
     (sum: number, e: any) => sum + Number(e.amount),
     0
-  );
+  ).toFixed(2);
+
+  const categories = ["Food", "Travel", "Rent", "Shopping", "Bills"];
 
   return (
-    <main style={{ padding: 20 }}>
+    <main style={{ padding: 20, maxWidth: 500, margin: "auto" }}>
       <h1>Expense Tracker</h1>
 
       {/* TOTAL */}
@@ -67,11 +83,15 @@ export default function Home() {
         style={{ marginBottom: 10 }}
       >
         <option value="">All</option>
-        <option value="food">Food</option>
-        <option value="travel">Travel</option>
-        <option value="rent">Rent</option>
+        <option value="Food">Food</option>
+        <option value="Travel">Travel</option>
+        <option value="Rent">Rent</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Bills">Bills</option>
       </select>
 
+      {/* LOADING */}
+      {loading && <p>Loading...</p>}
       {/* FORM */}
       <form onSubmit={addExpense} style={{ marginBottom: 20 }}>
         <input
@@ -82,13 +102,19 @@ export default function Home() {
           }
         />
 
-        <input
-          placeholder="category"
+        <select
           value={form.category}
           onChange={(e) =>
             setForm({ ...form, category: e.target.value })
           }
-        />
+        >
+          <option value="">Select category</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
 
         <input
           placeholder="description"
@@ -111,11 +137,15 @@ export default function Home() {
 
       {/* LIST */}
       <ul>
-        {expenses.map((e: any) => (
-          <li key={e.id}>
-            {e.category} - ₹{e.amount}
-          </li>
-        ))}
+        {expenses.length === 0 ? (
+          <p>No expenses yet</p>
+        ) : (
+          expenses.map((e: any) => (
+            <li key={e.id}>
+              {e.category} - ₹{Number(e.amount).toFixed(2)}
+            </li>
+          ))
+        )}
       </ul>
     </main>
   );
