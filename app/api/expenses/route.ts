@@ -90,7 +90,7 @@ export async function POST(req: Request) {
         description:
           description && typeof description === "string"
             ? description.trim()
-            : null,
+            : "",
         date: parsedDate,
         ...(idempotencyKey ? { idempotencyKey } : {}),
       },

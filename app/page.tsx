@@ -6,7 +6,7 @@ interface Expense {
   id: string;
   amount: string | number;
   category: string;
-  description: string | null;
+  description: string;
   date: string;
   created_at: string;
 }
